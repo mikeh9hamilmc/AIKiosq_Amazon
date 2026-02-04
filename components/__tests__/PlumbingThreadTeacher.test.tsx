@@ -23,7 +23,7 @@ describe('PlumbingThreadTeacher', () => {
 
     it('renders analyzing part spinner', () => {
         render(<PlumbingThreadTeacher lessonStage={LessonStage.ANALYZING_PART} />);
-        expect(screen.getByText(/GEMINI 3 ANALYSIS/i)).toBeInTheDocument();
+        expect(screen.getByText(/AI ANALYSIS/i)).toBeInTheDocument();
         expect(screen.getByText(/Mac is examining your part/i)).toBeInTheDocument();
     });
 

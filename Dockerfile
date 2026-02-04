@@ -4,9 +4,9 @@ FROM node:20-alpine as build
 WORKDIR /app
 
 # Accept API Key as a build argument
-ARG GEMINI_API_KEY
+ARG NOVA_API_KEY
 # Set it as an environment variable so Vite can read it during build
-ENV GEMINI_API_KEY=$GEMINI_API_KEY
+ENV NOVA_API_KEY=$NOVA_API_KEY
 
 COPY package*.json ./
 RUN npm ci

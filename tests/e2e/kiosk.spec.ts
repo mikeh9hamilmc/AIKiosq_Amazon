@@ -28,9 +28,9 @@ test.describe('AIKiosq E2E Flow', () => {
         // We use the exposed test helper to bypass physical motion detection
         await page.evaluate(() => {
             // @ts-ignore
-            if (window.triggerGeminiConnection) {
+            if (window.triggerNovaConnection) {
                 // @ts-ignore
-                window.triggerGeminiConnection();
+                window.triggerNovaConnection();
             }
         });
 
@@ -38,12 +38,12 @@ test.describe('AIKiosq E2E Flow', () => {
         // It should transition to "One moment..." or similar, then "Connected"
         // Note: In a real test without a real backend, the connection might fail or hang if API key is missing/invalid.
         // However, the status update happens BEFORE the connection call in App.tsx:
-        // setCurrentStep('connecting'); setStatus(...) -> "Connecting to Gemini..."
+        // setCurrentStep('connecting'); setStatus(...) -> "Connecting to Nova..."
 
         // 4. Verify Connection State
         // Target the status bar specifically to avoid ambiguity with logs/headers
         const statusText = page.locator('p.text-cyan-400');
-        await expect(statusText).toContainText(/Connecting to Gemini/i);
+        await expect(statusText).toContainText(/Connecting to Nova/i);
         // Note: Connecting state is transient, skipping snapshot to avoid partial-transition flakes
 
         // 5. Test Shutdown

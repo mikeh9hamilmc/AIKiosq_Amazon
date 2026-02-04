@@ -173,7 +173,7 @@ const PlumbingThreadTeacher: React.FC<PlumbingThreadTeacherProps> = ({
       {isAnalyzing && (
         <div className="text-center p-8">
           <div className="inline-block animate-spin rounded-full h-24 w-24 border-8 border-[#003366] border-t-transparent mb-6"></div>
-          <h2 className="text-3xl text-[#003366] font-bold mb-2">GEMINI 3 ANALYSIS</h2>
+          <h2 className="text-3xl text-[#003366] font-bold mb-2">AI ANALYSIS</h2>
           <p className="text-[#003366] text-xl">Mac is examining your part...</p>
         </div>
       )}
