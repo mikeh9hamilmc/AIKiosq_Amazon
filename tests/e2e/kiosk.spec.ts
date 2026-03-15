@@ -26,12 +26,9 @@ test.describe('AIKiosq E2E Flow', () => {
 
         // 3. Trigger Connection (Simulate Motion/Customer Approach)
         // We use the exposed test helper to bypass physical motion detection
+        await page.waitForFunction(() => typeof (window as any).triggerNovaConnection === 'function');
         await page.evaluate(() => {
-            // @ts-ignore
-            if (window.triggerNovaConnection) {
-                // @ts-ignore
-                window.triggerNovaConnection();
-            }
+            (window as any).triggerNovaConnection();
         });
 
         // 4. Verify Connection State
@@ -48,7 +45,7 @@ test.describe('AIKiosq E2E Flow', () => {
 
         // 5. Test Shutdown
         // Wait a moment to ensure it doesn't crash immediately
-        // 5. Expand Coverage: "I have a stuck valve" (Analyze Part Flow)
+        // 5. Expand Coverage: "I have a burnt outlet" (Analyze Part Flow)
 
         const isAnalysisSkipped = await page.evaluate(async () => {
             // Wait for hooks to be available (retry loop)
@@ -69,16 +66,16 @@ test.describe('AIKiosq E2E Flow', () => {
             // @ts-ignore
             window.kioskHooks.analysisService.analyzePartForReplacement = async () => {
                 return {
-                    partName: 'Stuck Brass Valve',
-                    instructions: '1. Turn off water. 2. Use wrench.',
-                    warnings: ['Hot water hazard'],
+                    partName: 'Burnt Outlet',
+                    instructions: '1. Turn off breaker. 2. Remove plate.',
+                    warnings: ['Shock hazard'],
                     snapshotBase64: '' // App will fill this or we can omit
                 };
             };
 
             // Trigger the interaction WITHOUT awaiting, so we can verify the UI transitions
             // @ts-ignore
-            window.kioskHooks.handleAnalyzePart("I have a stuck valve").catch((e: unknown) => console.error("Analyze error:", e));
+            window.kioskHooks.handleAnalyzePart("I have a burnt outlet").catch((e: unknown) => console.error("Analyze error:", e));
         });
 
         if (isAnalysisSkipped) {
@@ -87,7 +84,7 @@ test.describe('AIKiosq E2E Flow', () => {
             // 6. Verify Countdown OR Result (Race condition handling)
             // If the machine is slow or the mock is too fast, we might miss the countdown.
             const countdownHeading = page.getByRole('heading', { name: 'HOLD UP YOUR PART' }).first();
-            const resultHeading = page.getByText('PART IDENTIFIED: Stuck Brass Valve').first();
+            const resultHeading = page.getByText('PART IDENTIFIED: Burnt Outlet').first();
 
             // Wait for either the countdown or the result
             await expect(countdownHeading.or(resultHeading)).toBeVisible({ timeout: 10000 });
@@ -110,8 +107,7 @@ test.describe('AIKiosq E2E Flow', () => {
 
             // 7. Verify Analysis Result (after mock returns)
             // The mock is instant, but the countdown takes 3 seconds
-            // Note: The UI only displays the Part Name. Instructions are spoken by Mac.
-            await expect(page.getByText('PART IDENTIFIED: Stuck Brass Valve').first()).toBeVisible({ timeout: 10000 });
+            await expect(page.getByText('PART IDENTIFIED: Burnt Outlet').first()).toBeVisible({ timeout: 10000 });
 
             // Snapshot result - mask video and the captured snapshot image (if displayed)
             await expect(page).toHaveScreenshot('analysis-result.png', {

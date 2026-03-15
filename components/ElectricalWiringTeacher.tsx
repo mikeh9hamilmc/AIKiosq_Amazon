@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from 'react';
-import { LessonStage, PlumbingThreadTeacherProps } from '../types';
+import { LessonStage, ElectricalWiringTeacherProps } from '../types';
 
-const PlumbingThreadTeacher: React.FC<PlumbingThreadTeacherProps> = ({
+const ElectricalWiringTeacher: React.FC<ElectricalWiringTeacherProps> = ({
   lessonStage,
   isConnected,
   videoUrl,
@@ -91,62 +91,65 @@ const PlumbingThreadTeacher: React.FC<PlumbingThreadTeacherProps> = ({
             <pattern id="diagonalHatch" width="10" height="10" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
               <line x1="0" y1="0" x2="0" y2="10" className="blueprint-ink" strokeWidth="1" />
             </pattern>
+            <linearGradient id="copper" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#cd7f32" />
+              <stop offset="50%" stopColor="#b87333" />
+              <stop offset="100%" stopColor="#8b4513" />
+            </linearGradient>
+            <linearGradient id="insulation" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#444" />
+              <stop offset="50%" stopColor="#222" />
+              <stop offset="100%" stopColor="#111" />
+            </linearGradient>
           </defs>
 
-          {/* LEFT DIAGRAM: IPS (Tapered) */}
+          {/* LEFT DIAGRAM: SOLID WIRE */}
           <g
             className={`transition-all duration-700 transform ${isHighlight ? 'opacity-20 -translate-x-20' : 'opacity-100'}`}
           >
-            <text x="200" y="50" textAnchor="middle" className="blueprint-ink text-xl font-bold tracking-widest">IPS (NPT)</text>
-            <text x="200" y="450" textAnchor="middle" className="fill-red-800 text-lg font-bold">NEEDS TAPE</text>
+            <text x="200" y="50" textAnchor="middle" className="blueprint-ink text-xl font-bold tracking-widest">SOLID WIRE</text>
+            <text x="200" y="450" textAnchor="middle" className="fill-red-800 text-lg font-bold">LIMITED BENDING</text>
 
-            <path d="M100,100 L300,100 L290,400 L110,400 Z" fill="none" stroke="#003366" strokeWidth="3" />
-            <path d="M100,120 L300,120" stroke="#003366" strokeWidth="1" />
-            <path d="M102,140 L298,140" stroke="#003366" strokeWidth="1" />
-            <path d="M104,160 L296,160" stroke="#003366" strokeWidth="1" />
-            <path d="M106,180 L294,180" stroke="#003366" strokeWidth="1" />
-            <path d="M108,200 L292,200" stroke="#003366" strokeWidth="1" />
-            <line x1="80" y1="100" x2="110" y2="400" stroke="#003366" strokeWidth="1" strokeDasharray="5,5" opacity="0.5" />
-            <line x1="320" y1="100" x2="290" y2="400" stroke="#003366" strokeWidth="1" strokeDasharray="5,5" opacity="0.5" />
+            {/* Insulation */}
+            <rect x="50" y="220" width="150" height="60" fill="url(#insulation)" rx="5" />
+            {/* Stripped Copper Core */}
+            <rect x="200" y="235" width="120" height="30" fill="url(#copper)" rx="2" />
+            <line x1="200" y1="210" x2="200" y2="290" stroke="#003366" strokeWidth="2" strokeDasharray="4,4" />
           </g>
 
-          {/* RIGHT DIAGRAM: COMPRESSION */}
+          {/* RIGHT DIAGRAM: STRANDED WIRE */}
           <g
             className={`transition-all duration-700 transform ${isHighlight ? 'translate-x-[-200px] scale-125' : ''}`}
             style={{ transformOrigin: '600px 250px' }}
           >
-            <text x="600" y="50" textAnchor="middle" className="blueprint-ink text-xl font-bold tracking-widest">COMPRESSION</text>
+            <text x="600" y="50" textAnchor="middle" className="blueprint-ink text-xl font-bold tracking-widest">STRANDED WIRE</text>
             <text x="600" y="450" textAnchor="middle" className="blueprint-ink text-lg font-bold">
-              {isHighlight ? '' : 'NO TAPE'}
+              {isHighlight ? '' : 'FLEXIBLE'}
             </text>
 
-            <path d="M500,100 L700,100 L700,400 L500,400 Z" fill="none" stroke="#003366" strokeWidth="3" />
-            {Array.from({ length: 8 }).map((_, i) => (
-              <line key={i} x1="500" y1={120 + i * 25} x2="700" y2={120 + i * 25} stroke="#003366" strokeWidth="2" />
+            {/* Insulation */}
+            <rect x="450" y="220" width="150" height="60" fill="url(#insulation)" rx="5" />
+
+            {/* Strands */}
+            {Array.from({ length: 6 }).map((_, i) => (
+              <path key={i} d={`M600,${225 + (i * 10)} Q660,${220 + (i * 12)} 720,${225 + (i * 10)}`} fill="none" stroke="url(#copper)" strokeWidth="4" />
             ))}
 
-            <path
-              d="M480,320 L720,320 L720,360 L480,360 Z"
-              className={`transition-colors duration-500 ease-in-out ${isHighlight ? 'fill-[#FF4500]' : 'fill-transparent'}`}
-              stroke="#003366"
-              strokeWidth="2"
-              data-testid="ferrule"
-            />
-
-            <path d="M470,280 L730,280 L730,310 L470,310 Z" fill="none" stroke="#003366" strokeWidth="1" strokeDasharray="4,4" />
+            <line x1="600" y1="210" x2="600" y2="290" stroke="#003366" strokeWidth="2" strokeDasharray="4,4" />
 
             {isHighlight && (
               <g className="animate-fade-in">
-                <line x1="720" y1="340" x2="780" y2="340" stroke="#FF4500" strokeWidth="3" />
-                <circle cx="780" cy="340" r="4" fill="#FF4500" />
+                <line x1="600" y1="180" x2="720" y2="180" stroke="#FF4500" strokeWidth="3" />
+                <line x1="600" y1="170" x2="600" y2="190" stroke="#FF4500" strokeWidth="3" />
+                <line x1="720" y1="170" x2="720" y2="190" stroke="#FF4500" strokeWidth="3" />
                 <text
-                  x="600"
-                  y="450"
+                  x="660"
+                  y="160"
                   textAnchor="middle"
-                  className="fill-[#FF4500] text-2xl font-black"
-                  data-testid="seal-point-label"
+                  className="fill-[#FF4500] text-xl font-black"
+                  data-testid="strip-length-label"
                 >
-                  SEAL POINT
+                  3/4" STRIP LENGTH
                 </text>
               </g>
             )}
@@ -174,15 +177,15 @@ const PlumbingThreadTeacher: React.FC<PlumbingThreadTeacherProps> = ({
         <div className="text-center p-8">
           <div className="inline-block animate-spin rounded-full h-24 w-24 border-8 border-[#003366] border-t-transparent mb-6"></div>
           <h2 className="text-3xl text-[#003366] font-bold mb-2">AI ANALYSIS</h2>
-          <p className="text-[#003366] text-xl">Mac is examining your part...</p>
+          <p className="text-[#003366] text-xl">Sparky is examining your part...</p>
         </div>
       )}
 
-      {/* SHOWING ANALYSIS - Snapshot + Part Name (Mac explains verbally) */}
+      {/* SHOWING ANALYSIS - Snapshot + Part Name (Sparky explains verbally) */}
       {isShowingAnalysis && partAnalysis && (
         <div className="w-full h-full flex flex-col items-center justify-center p-6 bg-[#F5F5DC]">
           <h2 className="text-3xl text-[#003366] font-bold mb-6 border-b-4 border-[#003366] pb-2">
-            PART IDENTIFIED
+            PART IDENTIFIED: {partAnalysis.partName}
           </h2>
 
           <div className="border-4 border-[#003366] rounded-lg overflow-hidden shadow-lg max-w-2xl">
@@ -191,9 +194,6 @@ const PlumbingThreadTeacher: React.FC<PlumbingThreadTeacherProps> = ({
               alt="Part snapshot"
               className="w-full h-auto"
             />
-            <div className="bg-[#003366] text-white px-4 py-3 text-xl font-bold text-center">
-              {partAnalysis.partName}
-            </div>
           </div>
         </div>
       )}
@@ -206,7 +206,7 @@ const PlumbingThreadTeacher: React.FC<PlumbingThreadTeacherProps> = ({
           </h2>
 
           {inventoryItems.length === 0 ? (
-            <p className="text-xl text-[#003366] text-center mt-12">No items found. Please ask Mac for help!</p>
+            <p className="text-xl text-[#003366] text-center mt-12">No items found. Please ask Sparky for help!</p>
           ) : (
             <div className="space-y-4">
               {inventoryItems.map((item) => (
@@ -266,4 +266,4 @@ const PlumbingThreadTeacher: React.FC<PlumbingThreadTeacherProps> = ({
   );
 };
 
-export default PlumbingThreadTeacher;
+export default ElectricalWiringTeacher;

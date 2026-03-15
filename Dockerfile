@@ -3,27 +3,37 @@ FROM node:20-alpine as build
 
 WORKDIR /app
 
-# Accept API Key as a build argument
-ARG NOVA_API_KEY
-# Set it as an environment variable so Vite can read it during build
-ENV NOVA_API_KEY=$NOVA_API_KEY
-
 COPY package*.json ./
 RUN npm ci
 
 COPY . .
 RUN npm run build
 
-# Stage 2: Serve with Nginx
-FROM nginx:alpine
+# Stage 2: Run the Node.js server
+FROM node:20-alpine
 
-# Copy built assets
-COPY --from=build /app/dist /usr/share/nginx/html
+WORKDIR /app
 
-# Copy Nginx config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy package files and install production dependencies
+COPY package*.json ./
+RUN npm ci --omit=dev
 
-# Validates that the container is listening on the expected port (8080 for Cloud Run)
+# Copy built frontend assets from stage 1
+COPY --from=build /app/dist ./dist
+
+# Copy server source and other necessary files
+COPY server ./server
+COPY types.ts ./
+COPY tsconfig.json ./
+# Include any other files needed at runtime (e.g. inventory)
+COPY public ./public
+
+# Expose the port (App Runner typically uses 8080)
 EXPOSE 8080
 
-CMD ["nginx", "-g", "daemon off;"]
+# Environment variables
+ENV NODE_ENV=production
+ENV SERVER_PORT=8080
+
+# Start the server using tsx
+CMD ["npx", "tsx", "server/index.ts"]

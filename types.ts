@@ -26,7 +26,7 @@ export interface InventoryItem {
   description: string;
 }
 
-export interface PlumbingThreadTeacherProps {
+export interface ElectricalWiringTeacherProps {
   lessonStage: LessonStage;
   isConnected?: boolean;
   videoUrl?: string;

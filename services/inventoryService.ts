@@ -62,17 +62,17 @@ export class InventoryService {
     const item = this.inventory.items.find(i => i.id === itemId);
     if (!item) return [];
 
-    // Simple logic: if it's a valve, suggest tape and washers
-    if (item.category === 'valves') {
+    // Simple logic: if it's a switch or outlet, suggest wall plates and wire nuts
+    if (item.category === 'switches' || item.category === 'outlets') {
       return this.inventory.items.filter(i =>
-        i.id === 'tape-001' || i.id === 'washer-001'
+        i.id === 'plate-001' || i.id === 'wire-nut-001' || i.id === 'box-001'
       );
     }
 
-    // If it's a compression fitting, suggest ferrules and tape
-    if (item.category === 'fittings' && item.keywords.includes('compression')) {
+    // If it's wire, suggest wire strippers and wire nuts
+    if (item.category === 'wire') {
       return this.inventory.items.filter(i =>
-        i.id === 'fitting-002' || i.id === 'tape-001'
+        i.id === 'tool-001' || i.id === 'wire-nut-001'
       );
     }
 

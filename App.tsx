@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
-import PlumbingThreadTeacher from './components/PlumbingThreadTeacher';
+import ElectricalWiringTeacher from './components/ElectricalWiringTeacher';
 import { NovaSonicService } from './services/novaSonicService';
 import { NovaAnalysisService } from './services/novaAnalysisService';
 import { InventoryService } from './services/inventoryService';
@@ -164,7 +164,7 @@ const App: React.FC = () => {
       const snapshotBase64 = await blobToBase64(blob);
       addLog(`Snapshot captured (${canvas.width}x${canvas.height}).`, 'text-green-400');
 
-      setStatus('Mac is analyzing with Nova Lite...');
+      setStatus('Sparky is analyzing with Nova Lite...');
       addLog('Sending to Nova Lite for analysis...', 'text-yellow-400');
 
       // Analyze with Nova Lite
@@ -181,7 +181,7 @@ const App: React.FC = () => {
       setStatus('✅ Analysis complete!');
       addLog('Analysis displayed on screen.', 'text-green-400');
 
-      // Return results for the tool response — Mac will ask before explaining
+      // Return results for the tool response — Sparky will ask before explaining
       return `Analysis Complete.\nPart Identified: ${result.partName}\nInstructions: ${result.instructions}\n\nTell the customer what part this is, then ask if they would like replacement instructions.`;
 
     } catch (error) {
@@ -240,8 +240,8 @@ const App: React.FC = () => {
     addLog(`Tool call: show_aisle_sign("${aisleName}")`, 'text-cyan-300');
     setCurrentStep('aisle');
     // Convert aisle name to file path
-    // "Aisle 5 - Undersink Repair" -> "/Aisle 5 Sign.jpg"
-    const aisleNumber = 5; //aisleName.match(/Aisle (\d+)/)?.[1] || '5'; only have one aisle sign for demo
+    // "Aisle 17 - Electrical" -> "/Aisle 17 Sign.jpg"
+    const aisleNumber = 17; //aisleName.match(/Aisle (\d+)/)?.[1] || '5'; only have one aisle sign for demo
     const signPath = `/Aisle ${aisleNumber} Sign.jpg`;
 
     addLog(`Loading sign: ${signPath}`, 'text-gray-300');
@@ -384,7 +384,7 @@ const App: React.FC = () => {
       <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-3 gap-4 h-[600px]">
 
         <div className="md:col-span-2 relative bg-black rounded-lg border-4 border-gray-800 overflow-hidden">
-          <PlumbingThreadTeacher
+          <ElectricalWiringTeacher
             lessonStage={stage}
             isConnected={isConnected}
             videoUrl={videoUrl}

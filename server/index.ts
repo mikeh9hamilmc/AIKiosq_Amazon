@@ -7,6 +7,22 @@ import { NovaSonicBidirectionalStreamClient, StreamSession } from "./novaSonicCl
 import { ToolSpec } from "./types";
 import dotenv from "dotenv";
 
+// ─────────────────────────────────────────────────────────────
+// CRITICAL: Global process error handlers for App Runner debugging
+// ─────────────────────────────────────────────────────────────
+process.on("uncaughtException", (err) => {
+    console.error("🔥 UNCAUGHT EXCEPTION:", err);
+    console.error(err.stack);
+    // On App Runner, a process exit will trigger a reboot. 
+    // We log it first to see it in CloudWatch.
+    setTimeout(() => process.exit(1), 1000);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+    console.error("🔥 UNHANDLED REJECTION at:", promise, "reason:", reason);
+    // No need to exit immediately, but helpful to know it's happening
+});
+
 // ESM equivalent of __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,7 +38,10 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
-        origin: ["http://localhost:3000", "http://127.0.0.1:3000"],
+        // In production (App Runner), the browser and server are on the same domain,
+        // so we need to allow that origin. Allowing all origins is safe when the 
+        // frontend is served from the same server.
+        origin: process.env.NODE_ENV === "production" ? true : ["http://localhost:3000", "http://127.0.0.1:3000"],
         methods: ["GET", "POST"],
     },
     maxHttpBufferSize: 1e7, // 10MB for audio chunks
@@ -38,33 +57,40 @@ const bedrockClient = new NovaSonicBidirectionalStreamClient({
     },
     clientConfig: {
         region: process.env.VITE_AWS_REGION || process.env.AWS_REGION || "us-east-1",
-        credentials: {
-            accessKeyId: process.env.VITE_AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID || "",
-            secretAccessKey: process.env.VITE_AWS_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY || "",
-            ...(process.env.VITE_AWS_SESSION_TOKEN || process.env.AWS_SESSION_TOKEN
-                ? { sessionToken: process.env.VITE_AWS_SESSION_TOKEN || process.env.AWS_SESSION_TOKEN }
-                : {}),
-        },
+        // Only provide explicit credentials if they are set in the environment.
+        // Otherwise, the AWS SDK will automatically use the default credential provider
+        // (files in ~/.aws locally, or Instance Role on App Runner).
+        ...((process.env.VITE_AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID)
+            ? {
+                credentials: {
+                    accessKeyId: process.env.VITE_AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID || "",
+                    secretAccessKey: process.env.VITE_AWS_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY || "",
+                    ...(process.env.VITE_AWS_SESSION_TOKEN || process.env.AWS_SESSION_TOKEN
+                        ? { sessionToken: process.env.VITE_AWS_SESSION_TOKEN || process.env.AWS_SESSION_TOKEN }
+                        : {}),
+                },
+            }
+            : {}),
     },
 });
 
 // ─────────────────────────────────────────────────────────────
-// Mac's system prompt and tool definitions
+// Sparky's system prompt and tool definitions
 // ─────────────────────────────────────────────────────────────
 
-const MAC_SYSTEM_PROMPT = `You are Mac, a veteran hardware store manager with 30 years of plumbing experience. You work at a kiosk in a hardware store, helping customers identify plumbing parts and find replacements.
+const Sparky_SYSTEM_PROMPT = `You are Sparky, a veteran hardware store manager with 30 years of electrical experience. You work at a kiosk in a hardware store, helping customers identify electrical parts and find replacements.
 
 Your personality:
 - Warm, friendly, and approachable
 - Practical, no-nonsense advice
-- Occasional dad jokes about plumbing
+- Occasional dad jokes about electricity or wiring
 - Speak conversationally — you're face-to-face with the customer
 
 How to help customers:
-1. Greet them warmly and ask about their plumbing problem
+1. Greet them warmly and ask about their electrical problem
 2. Listen carefully and ask clarifying questions
 3. When the customer wants to show you a part (they say things like "here it is", "take a look", "can you see this", "I brought the part"), use the analyze_part tool to capture and analyze the image from the camera
-4. After analysis, tell the customer what the part is and offer to explain replacement steps
+4. After analysis, tell the customer what the part is and offer to explain installation or safety steps
 5. If they want replacement parts, use check_inventory to find matching items in the store
 6. After showing inventory, offer to show them where to find the parts using show_aisle
 
@@ -75,7 +101,7 @@ const TOOL_SPECS: ToolSpec[] = [
         toolSpec: {
             name: "analyze_part",
             description:
-                "Capture and analyze a plumbing part that the customer is showing to the kiosk camera. Use this when the customer indicates they want to show you a part — e.g. 'here it is', 'take a look at this', 'can you see it', 'I brought the part'. The kiosk camera will take a high-resolution snapshot and analyze it.",
+                "Capture and analyze an electrical part that the customer is showing to the kiosk camera. Use this when the customer indicates they want to show you a part — e.g. 'here it is', 'take a look at this', 'can you see it', 'I brought the part'. The kiosk camera will take a high-resolution snapshot and analyze it.",
             inputSchema: {
                 json: JSON.stringify({
                     type: "object",
@@ -94,7 +120,7 @@ const TOOL_SPECS: ToolSpec[] = [
         toolSpec: {
             name: "check_inventory",
             description:
-                "Search the store inventory for plumbing parts matching the query. Use this when the customer wants to buy replacement parts or wants to know if the store carries something.",
+                "Search the store inventory for electrical parts matching the query. Use this when the customer wants to buy replacement parts or wants to know if the store carries something.",
             inputSchema: {
                 json: JSON.stringify({
                     type: "object",
@@ -231,8 +257,15 @@ io.on("connection", (socket) => {
             socketSessions.set(socket.id, session);
             sessionStates.set(socket.id, SessionState.READY);
 
+            console.log(`Initiating bidirectional stream for ${socket.id}...`);
             // Start bidirectional streaming (runs in background)
-            bedrockClient.initiateBidirectionalStreaming(socket.id);
+            bedrockClient.initiateBidirectionalStreaming(socket.id)
+                .then(() => console.log(`Bidirectional stream initiated successfully for ${socket.id}`))
+                .catch((err) => {
+                    console.error(`FAILED to initiate bidirectional stream for ${socket.id}:`, err);
+                    socket.emit("error", { message: "Failed to connect to Bedrock" });
+                });
+            
             sessionStates.set(socket.id, SessionState.ACTIVE);
 
             if (callback) callback({ success: true });
@@ -264,7 +297,7 @@ io.on("connection", (socket) => {
         const session = socketSessions.get(socket.id);
         if (!session) return;
         try {
-            const promptText = data?.systemPrompt || MAC_SYSTEM_PROMPT;
+            const promptText = data?.systemPrompt || Sparky_SYSTEM_PROMPT;
             await session.setupSystemPrompt(promptText);
         } catch (error) {
             console.error("Error in systemPrompt:", error);
@@ -278,6 +311,22 @@ io.on("connection", (socket) => {
         if (!session) return;
         try {
             await session.setupStartAudio();
+
+            // Inject the wake-up audio trigger (Nova Sonic requires audio input to respond)
+            const fs = await import("fs");
+            const triggerPath = path.resolve(__dirname, "../public/trigger.raw");
+            if (fs.existsSync(triggerPath)) {
+                const triggerAudio = fs.readFileSync(triggerPath);
+                const CHUNK_SIZE = 1024;
+                for (let offset = 0; offset < triggerAudio.length; offset += CHUNK_SIZE) {
+                    const chunkLength = Math.min(CHUNK_SIZE, triggerAudio.length - offset);
+                    const chunk = triggerAudio.subarray(offset, offset + chunkLength);
+                    await session.streamAudio(chunk);
+                    await new Promise(resolve => setTimeout(resolve, 5));
+                }
+                console.log("Wake-up audio trigger injected into stream");
+            }
+
             socket.emit("audioReady");
         } catch (error) {
             console.error("Error in audioStart:", error);
@@ -369,6 +418,94 @@ io.on("connection", (socket) => {
 });
 
 // ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// Nova Lite analysis proxy (runs server-side with Instance Role)
+// ─────────────────────────────────────────────────────────────
+
+app.use(express.json({ limit: "10mb" }));
+
+app.post("/api/analyze-part", async (req, res) => {
+    const { imageBase64, userQuestion } = req.body as { imageBase64?: string; userQuestion?: string };
+
+    if (!imageBase64) {
+        res.status(400).json({ error: "imageBase64 is required" });
+        return;
+    }
+
+    const region = process.env.VITE_AWS_REGION || process.env.AWS_REGION || "us-east-1";
+    const prompt = `You are Sparky, a veteran hardware store manager with 30 years of electrician experience.
+
+The customer is asking: "${userQuestion || "What is this part?"}"
+
+Analyze the electrical part/component in this image and provide:
+
+1. Identify what type of part this is (breaker, outlet, switch, wire, panel component, etc.)
+2. Identify key specifications visible (voltage, amperage, brand, model, wire gauge, etc.)
+3. Provide SHORT, QUICK step-by-step instructions to replace this part safely
+
+Keep your response concise and practical. Use bullet points. Write like a friendly veteran who's done this a thousand times. Always mention safety first.
+
+Format your response as:
+PART: [name of part]
+
+INSTRUCTIONS:
+[numbered steps]`;
+
+    try {
+        const { BedrockRuntimeClient, ConverseCommand } = await import("@aws-sdk/client-bedrock-runtime");
+
+        // Use same credential logic as main client for local development
+        const credentials = (process.env.VITE_AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID)
+            ? {
+                accessKeyId: process.env.VITE_AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID || "",
+                secretAccessKey: process.env.VITE_AWS_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY || "",
+                ...(process.env.VITE_AWS_SESSION_TOKEN || process.env.AWS_SESSION_TOKEN
+                    ? { sessionToken: process.env.VITE_AWS_SESSION_TOKEN || process.env.AWS_SESSION_TOKEN }
+                    : {}),
+            }
+            : undefined;
+
+        console.log(`[/api/analyze-part] Analyzing image (${(imageBase64.length / 1024).toFixed(1)} KB)...`);
+
+        const client = new BedrockRuntimeClient({
+            region,
+            credentials
+        });
+
+        // Use Buffer for Node.js base64 decoding
+        const bytes = Buffer.from(imageBase64, 'base64');
+
+        const command = new ConverseCommand({
+            modelId: "us.amazon.nova-2-lite-v1:0",
+            messages: [{
+                role: "user",
+                content: [
+                    { image: { format: "jpeg", source: { bytes } } },
+                    { text: prompt },
+                ],
+            }],
+            inferenceConfig: { maxTokens: 1024, temperature: 0 },
+        });
+
+        const response = await client.send(command);
+        const text = response.output?.message?.content?.[0];
+        const textContent = text && "text" in text ? text.text : "";
+
+        if (!textContent) throw new Error("No text content in Nova Lite response");
+
+        console.log("[/api/analyze-part] Analysis successful");
+        res.json({ result: textContent });
+    } catch (err: any) {
+        console.error("[/api/analyze-part] 🔥 ERROR:", err);
+        res.status(500).json({ 
+            error: err.message, 
+            code: err.name,
+            stack: process.env.NODE_ENV === "development" ? err.stack : undefined 
+        });
+    }
+});
+
+// ─────────────────────────────────────────────────────────────
 // Health check & server start
 // ─────────────────────────────────────────────────────────────
 
@@ -380,8 +517,48 @@ app.get("/health", (_req, res) => {
     });
 });
 
+// Diagnostic endpoint — tests AWS credentials and Bedrock access
+app.get("/test-bedrock", async (_req, res) => {
+    const region = process.env.VITE_AWS_REGION || process.env.AWS_REGION || "us-east-1";
+    const credentialSource = process.env.VITE_AWS_ACCESS_KEY_ID
+        ? "env-var (VITE_)"
+        : process.env.AWS_ACCESS_KEY_ID
+        ? "env-var (AWS_)"
+        : "default-provider (instance-role)";
+
+    try {
+        // Use BedrockRuntimeClient which IS installed
+        const { BedrockRuntimeClient } = await import("@aws-sdk/client-bedrock-runtime");
+        const client = new BedrockRuntimeClient({ region });
+        // Just resolving credentials is enough to test the provider
+        const creds = await client.config.credentials();
+        res.json({
+            status: "ok",
+            message: "AWS credentials resolved successfully",
+            credentialSource,
+            region,
+            accessKeyId: creds.accessKeyId?.slice(0, 8) + "...",
+            hasToken: !!creds.sessionToken,
+        });
+    } catch (err: any) {
+        console.error("[/test-bedrock] Credential check failed:", err);
+        res.status(500).json({
+            status: "error",
+            message: err.message,
+            code: err.name,
+            credentialSource,
+            region,
+        });
+    }
+});
+
 // Serve static dist files in production
 app.use(express.static(path.resolve(__dirname, "../dist")));
+
+// SPA catchall — must come AFTER all API routes and static middleware
+app.get("*", (_req, res) => {
+    res.sendFile(path.resolve(__dirname, "../dist/index.html"));
+});
 
 const PORT = process.env.SERVER_PORT || 3001;
 server.listen(PORT, () => {

@@ -1,84 +1,142 @@
 {
   "items": [
     {
-      "id": "valve-001",
-      "name": "Quarter Turn Water Shut-Off Valve",
-      "category": "valves",
-      "keywords": ["valve", "shut-off", "shutoff", "quarter turn", "water valve", "angle stop"],
-      "aisle": "Aisle 5 - Undersink Repair",
-      "stock": 3,
-      "price": 16.99,
-      "description": "threaded inlet x compression outlet, chrome finish"
+      "id": "switch-001",
+      "name": "Single Pole Light Switch",
+      "category": "switches",
+      "keywords": [
+        "switch",
+        "light switch",
+        "single pole",
+        "toggle"
+      ],
+      "aisle": "Aisle 17 - Switches",
+      "stock": 45,
+      "price": 2.99,
+      "description": "Standard 15A single pole toggle light switch, white"
     },
     {
-      "id": "tape-001",
-      "name": "Pipe Thread Seal Tape",
-      "category": "supplies",
-      "keywords": ["teflon", "tape", "thread tape", "pipe tape", "seal tape", "ptfe"],
-      "aisle": "Aisle 5 - Undersink Repair",
-      "stock": 24,
-      "price": 1.79,
-      "description": "White PTFE thread seal tape for threaded pipe and valves"
-    },
-    {
-      "id": "fitting-001",
-      "name": "Brass Compression Fitting",
-      "category": "fittings",
-      "keywords": ["compression", "fitting", "brass", "ferrule", "compression fitting"],
-      "aisle": "Aisle 5 - Plumbing Fittings",
-      "stock": 12,
+      "id": "switch-002",
+      "name": "Three Way Light Switch",
+      "category": "switches",
+      "keywords": [
+        "switch",
+        "light switch",
+        "three way",
+        "toggle"
+      ],
+      "aisle": "Aisle 17 - Switches",
+      "stock": 45,
       "price": 4.99,
-      "description": "3/4\" compression fitting with brass ferrule and nut"
+      "description": "Standard 15A three way toggle light switch, white"
     },
     {
-      "id": "fitting-002",
-      "name": "Compression Ferrule Ring",
-      "category": "fittings",
-      "keywords": ["ferrule", "ring", "compression ring", "brass ring"],
-      "aisle": "Aisle 5 - Plumbing Fittings",
-      "stock": 18,
-      "price": 0.99,
-      "description": "3/4\" brass compression ferrule replacement"
+      "id": "outlet-001",
+      "name": "15A Duplex Receptacle",
+      "category": "outlets",
+      "keywords": [
+        "outlet",
+        "receptacle",
+        "plug",
+        "duplex"
+      ],
+      "aisle": "Aisle 17 - Outlets",
+      "stock": 60,
+      "price": 1.99,
+      "description": "Standard 15A 125V grounding duplex receptacle, white"
     },
     {
-      "id": "pipe-001",
-      "name": "Copper Supply Line",
-      "category": "pipes",
-      "keywords": ["copper", "supply line", "water line", "copper pipe"],
-      "aisle": "Aisle 5 - Pipes & Tubing",
-      "stock": 8,
-      "price": 12.99,
-      "description": "3/8\" x 12\" flexible copper supply line with compression fittings"
-    },
-    {
-      "id": "ptrap-001",
-      "name": "P-Trap Assembly",
-      "category": "drain",
-      "keywords": ["p-trap", "trap", "drain trap", "sink trap", "ptrap"],
-      "aisle": "Aisle 5 - Undersink Repair",
-      "stock": 6,
+      "id": "wire-nut-001",
+      "name": "Yellow Wire Nuts (100-Pack)",
+      "category": "connectors",
+      "keywords": [
+        "wire nut",
+        "connector",
+        "yellow",
+        "splice"
+      ],
+      "aisle": "Aisle 17 - Electrical",
+      "stock": 25,
       "price": 8.99,
-      "description": "1-1/2\" PVC P-trap with slip joint connections"
+      "description": "Yellow twist-on wire connectors for 2 to 3 wires"
     },
     {
-      "id": "wrench-001",
-      "name": "Basin Wrench",
-      "category": "tools",
-      "keywords": ["wrench", "basin wrench", "plumbing wrench", "faucet wrench"],
-      "aisle": "Aisle 5 - Hand Tools",
-      "stock": 5,
-      "price": 19.99,
-      "description": "Telescoping basin wrench for hard-to-reach nuts"
+      "id": "romex-001",
+      "name": "14/2 NM-B Wire (25 ft)",
+      "category": "wire",
+      "keywords": [
+        "wire",
+        "cable",
+        "romex",
+        "14/2",
+        "nm-b"
+      ],
+      "aisle": "Aisle 17 - Electrical",
+      "stock": 10,
+      "price": 24.99,
+      "description": "14 AWG 2-conductor non-metallic sheathed cable with ground"
     },
     {
-      "id": "washer-001",
-      "name": "Rubber Washers Assortment",
+      "id": "tape-002",
+      "name": "Electrical Tape (Black)",
       "category": "supplies",
-      "keywords": ["washer", "rubber washer", "gasket", "o-ring"],
-      "aisle": "Aisle 5 - Undersink Repair",
+      "keywords": [
+        "tape",
+        "electrical tape",
+        "black tape",
+        "pvc tape"
+      ],
+      "aisle": "Aisle 17 - Electricalt",
+      "stock": 80,
+      "price": 3.49,
+      "description": "3/4 in. x 66 ft. black vinyl electrical tape"
+    },
+    {
+      "id": "tool-001",
+      "name": "Wire Stripper & Cutter",
+      "category": "tools",
+      "keywords": [
+        "tool",
+        "stripper",
+        "cutter",
+        "crimper",
+        "wire stripper"
+      ],
+      "aisle": "Aisle 17 - Electrical",
       "stock": 15,
-      "price": 3.99,
-      "description": "Assorted rubber washers and o-rings"
+      "price": 14.99,
+      "description": "Multi-purpose wire stripper for 10-22 AWG solid/stranded wire"
+    },
+    {
+      "id": "box-001",
+      "name": "1-Gang Electrical Box",
+      "category": "boxes",
+      "keywords": [
+        "box",
+        "electrical box",
+        "gang",
+        "junction",
+        "old work"
+      ],
+      "aisle": "Aisle 17 - Electrical",
+      "stock": 35,
+      "price": 2.29,
+      "description": "1-gang old-work PVC electrical box with ears"
+    },
+    {
+      "id": "plate-001",
+      "name": "Duplex Wall Plate",
+      "category": "covers",
+      "keywords": [
+        "plate",
+        "cover",
+        "wall plate",
+        "outlet cover"
+      ],
+      "aisle": "Aisle 17 - Electrical",
+      "stock": 50,
+      "price": 0.59,
+      "description": "Standard size 1-gang duplex outlet wall plate, white"
     }
   ]
 }

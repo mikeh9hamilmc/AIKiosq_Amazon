@@ -191,6 +191,41 @@ export class StreamSession {
         });
     }
 
+    // Injects a USER text turn to trigger Sparky's opening greeting.
+    // Nova Sonic only produces audio output if there is a turn to respond to.
+    // Without this, the session sits silently waiting for audio input.
+    async setupGreetingTurn(): Promise<void> {
+        const greetingTurnId = `greeting-turn-${uuidv4()}`;
+
+        this.enqueueEvent({
+            contentStart: {
+                promptName: this.promptName,
+                contentName: greetingTurnId,
+                type: "TEXT",
+                interactive: false,
+                role: "USER",
+                textInputConfiguration: {
+                    mediaType: "text/plain",
+                },
+            },
+        });
+
+        this.enqueueEvent({
+            textInput: {
+                promptName: this.promptName,
+                contentName: greetingTurnId,
+                content: "[A customer just walked up to your kiosk. Greet them warmly and ask how you can help.]",
+            },
+        });
+
+        this.enqueueEvent({
+            contentEnd: {
+                promptName: this.promptName,
+                contentName: greetingTurnId,
+            },
+        });
+    }
+
     async setupStartAudio(): Promise<void> {
         this.enqueueEvent({
             contentStart: {
@@ -335,7 +370,8 @@ export class NovaSonicBidirectionalStreamClient {
     private modelId = "amazon.nova-2-sonic-v1:0";
 
     constructor(config: ClientConfig) {
-        const maxStreams = config.requestHandlerConfig?.maxConcurrentStreams ?? 20;
+        process.stderr.write("[NovaSonic] Initializing Bedrock client...\n");
+        const maxStreams = config.requestHandlerConfig?.maxConcurrentStreams ?? 10;
 
         this.client = new BedrockRuntimeClient({
             ...config.clientConfig,
@@ -343,8 +379,11 @@ export class NovaSonicBidirectionalStreamClient {
                 requestTimeout: 300_000,
                 sessionTimeout: 300_000,
                 maxConcurrentStreams: maxStreams,
+                // Reduce connection overhead on App Runner
+                disableConcurrentStreams: false,
             }),
         });
+        process.stderr.write("[NovaSonic] Bedrock client initialized OK\n");
     }
 
     createStreamSession(sessionId: string): StreamSession {
@@ -408,9 +447,16 @@ export class NovaSonicBidirectionalStreamClient {
             };
 
             const command = new InvokeModelWithBidirectionalStreamCommand(input as any);
-            const response = await this.client.send(command);
+            process.stderr.write(`[NovaSonic] Sending command to ${this.modelId}...\n`);
+            const response = await this.client.send(command).catch(err => {
+                process.stderr.write(`[NovaSonic] client.send FAILED: ${err.message}\n`);
+                throw err;
+            });
+
+            process.stderr.write(`[NovaSonic] Response status: ${response.$metadata.httpStatusCode}\n`);
 
             if (response.body) {
+                process.stderr.write("[NovaSonic] Body received. Starting event loop...\n");
                 for await (const event of response.body) {
                     this.lastActivity.set(sessionId, Date.now());
 

@@ -1,4 +1,4 @@
-# AIKiosQ - Mac's Hardware Store Kiosk (Amazon Nova Edition)
+# AIKiosQ - Sparky's Hardware Store Kiosk (Amazon Nova Edition)
 
 ## System Overview
 
@@ -7,10 +7,10 @@ AIKiosQ is a React + TypeScript kiosk application for hardware stores. It uses *
 | Model | Purpose | Usage |
 |-------|---------|-------|
 | **Amazon Nova Sonic** (`amazon.nova-2-sonic-v1:0`) | Real-time Speech-to-Speech conversation | Bidirectional HTTP/2 Stream via Express+Socket.IO server |
-| **Amazon Nova Lite 2** (`us.amazon.nova-2-lite-v1:0`) | Deep part analysis with image input | On-demand snapshots via `Converse API` (browser-side) |
+| **Amazon Nova Lite 2** (`us.amazon.nova-2-lite-v1:0`) | Deep part analysis with image input | On-demand via `Converse API` — **proxied through Express server** |
 | Mock JSON | Inventory lookup | Instant |
 
-The AI persona is **"Mac"** — a veteran hardware store manager with 30 years of plumbing experience and a friendly, funny personality.
+The AI persona is **"Sparky"** — a veteran hardware store manager with 30 years of electrician experience and a friendly, funny personality.
 
 ---
 
@@ -23,21 +23,22 @@ Browser (React + Vite :3000)              Server (Express + Socket.IO :3001)
 ┌──────────────────────────┐              ┌──────────────────────────────────┐
 │ App.tsx                   │   Socket.IO  │ server/index.ts                  │
 │ - Motion detection        │◄───────────►│ - Session management             │
-│ - Camera/mic capture      │   (proxied)  │ - NovaSonicBidirectionalClient   │
+│ - Camera/mic capture      │  (polling→WS)│ - NovaSonicBidirectionalClient   │
 │ - Audio playback          │              │   - Bedrock HTTP/2 stream        │
 │ - UI rendering            │              │   - Tool event relay to client   │
-│ - Tool execution          │              │ - AWS credentials (server-side)  │
-│   (Nova Lite Converse)    │              │                                  │
-│                           │              │ server/novaSonicClient.ts        │
-│ services/                 │              │ server/types.ts                  │
+│ - Tool execution          │   HTTP POST  │ - Nova Lite proxy endpoint       │
+│                           │◄───────────►│   POST /api/analyze-part         │
+│ services/                 │              │ - AWS creds: Instance Role only  │
 │  novaSonicService.ts      │              │                                  │
-│  (Socket.IO client)       │              │                                  │
-│  novaAnalysisService.ts   │              │                                  │
-│  (Bedrock Converse API)   │              │                                  │
+│  (Socket.IO client)       │              │ server/novaSonicClient.ts        │
+│  novaAnalysisService.ts   │              │ server/types.ts                  │
+│  (fetch → /api/analyze-part)│            │                                  │
 └──────────────────────────┘              └──────────────────────────────────┘
 ```
 
 Vite dev server proxies `/socket.io` WebSocket connections to `:3001`.
+
+> **App Runner note**: Socket.IO must use `transports: ["polling", "websocket"]` — App Runner's ALB does not reliably forward pure WebSocket upgrades. Polling establishes the connection first, then upgrades automatically.
 
 ---
 
@@ -61,7 +62,7 @@ Vite dev server proxies `/socket.io` WebSocket connections to `:3001`.
  │ 3. NOVA SONIC SESSION                                                    │
  │    Socket.IO → server → Bedrock bidirectional stream                     │
  │    Audio: 16kHz PCM (Mic) ⇄ 24kHz PCM (Speaker)                         │
- │    Mac greets customer automatically via System Prompt                    │
+ │    Sparky greets customer automatically via System Prompt                    │
  │    Native tool calling (not text pattern matching)                        │
  └──────────────────────────┬───────────────────────────────────────────────┘
                             ↓
@@ -77,23 +78,23 @@ Vite dev server proxies `/socket.io` WebSocket connections to `:3001`.
  │           4. Send to Amazon Nova Lite 2 (Converse API)                   │
  │           5. Result: "{Part Name} \n {Instructions}"                     │
  │           6. Send toolResult back to server → Bedrock                    │
- │           7. Mac tells customer what part it is                          │
- │           8. Mac asks if user wants instructions                         │
- │           9. Mac asks if user wants to check inventory                   │
+ │           7. Sparky tells customer what part it is                          │
+ │           8. Sparky asks if user wants instructions                         │
+ │           9. Sparky asks if user wants to check inventory                   │
  │                                                                          │
  │    check_inventory(query)                                                │
  │       │                                                                  │
  │       └─→ 1. Search inventory.json                                       │
  │           2. Display results on screen (Product Cards)                   │
  │           3. Send toolResult to Bedrock                                  │
- │           4. Mac tells customer what's in stock                          │
- │           5. Mac offers to show aisle location                           │
+ │           4. Sparky tells customer what's in stock                          │
+ │           5. Sparky offers to show aisle location                           │
  │                                                                          │
  │    show_aisle(aisle_name)                                                │
  │       │                                                                  │
  │       └─→ 1. Display aisle sign image on screen                          │
  │           2. Send toolResult to Bedrock                                  │
- │           3. Mac says goodbye                                            │
+ │           3. Sparky says goodbye                                            │
  │                                                                          │
  └──────────────────────────┬───────────────────────────────────────────────┘
                             ↓
@@ -121,6 +122,22 @@ VITE_AWS_REGION=us-east-1
 Server reads credentials from `.env.local` via dotenv. Browser uses them for Nova Lite Converse API calls.
 
 > **Note**: For Hackathon/Workshop accounts, add `VITE_AWS_SESSION_TOKEN` if needed.
+
+### App Runner (Production) — IAM Instance Role
+
+On App Runner, the service uses an **IAM Instance Role** (`AppRunnerBedrockInstanceRole`) instead of static credentials. The browser never calls AWS directly — all Bedrock calls go through the Express server which automatically uses the Instance Role.
+
+**Required IAM permissions on the Instance Role:**
+- `AmazonBedrockFullAccess`
+
+**To update the App Runner service with the Instance Role:**
+```bash
+aws apprunner update-service \
+  --service-arn <SERVICE_ARN> \
+  --instance-configuration '{"InstanceRoleArn":"arn:aws:iam::<ACCOUNT>:role/AppRunnerBedrockInstanceRole"}'
+```
+
+> **Do NOT** set `VITE_AWS_ACCESS_KEY_ID` / `VITE_AWS_SECRET_ACCESS_KEY` when using App Runner. The `.env.local` file should have no AWS keys — the server uses the metadata service automatically.
 
 ### Running
 
@@ -159,7 +176,7 @@ AIKiosq_Amazon_Hackathon/
 │
 └── public/
     ├── inventory.json                  Mock Data
-    ├── Aisle 5 Sign.jpg                Aisle location image
+    ├── Aisle 17 Sign.jpg               Aisle location image
     └── compression_demo.mp4            Demo video
 ```
 
@@ -180,8 +197,10 @@ Socket.IO client that connects to the Express server.
 - **Tools**: `toolUse` events → dispatch to App.tsx handlers → emit `toolResult` back
 
 ### NovaAnalysisService (`services/novaAnalysisService.ts`)
-Standard `ConverseCommand` client for Nova Lite 2 (runs in browser).
-- **Input**: Base64 Image + Text Prompt (image BEFORE text per Nova 2 docs)
+Calls `POST /api/analyze-part` on the Express server (not Bedrock directly).
+- **Why proxied**: Browser has no AWS credentials on App Runner; all Bedrock calls must go server-side
+- **Input**: Base64 Image + user question sent as JSON body
+- **Server**: Calls Nova Lite 2 `ConverseCommand` using Instance Role credentials
 - **Output**: Parsed text containing Part Name and Instructions
 - **Temperature**: 0 (deterministic extraction)
 
@@ -204,6 +223,42 @@ Consult these for answers:
 | **Socket.IO Error** | Server not running | Run `npm run dev` (starts both processes) |
 | **No Audio** | Browser Autoplay Policy | Click "Activate Sensors" to unlock AudioContext |
 | **Tool not triggered** | Speech nuance | Speak clearly: "Here, take a look at this part" |
+| **AI doesn't greet customer first** | Nova Sonic strictly requires audio input to trigger its response generation. A text turn is not enough. | Synthesize a short wake-up phrase into a `16kHz mono RAW PCM` file and inject it sequentially into the session stream immediately following `setupStartAudio()`, before capturing real mic input. |
+
+---
+
+## App Runner Deployment Troubleshooting
+
+### Debugging Approach
+
+When the App Runner service restarts unexpectedly, use this process:
+
+1. **Check CloudWatch logs** — App Runner application logs are here:
+   ```bash
+   aws logs tail "/aws/apprunner/<service>/<id>/application" --since 30m --format short
+   ```
+2. **Check if it's pre-connection or post-connection** — if logs show only server startup and nothing after, the crash is client-side (browser can't reach the server). If logs show connection events then an error, it's server-side.
+3. **Add synchronous stderr logging** — `console.log` is buffered and lost on SIGKILL. Use `process.stderr.write("msg\n")` in critical paths; it's synchronous and flushes before crash.
+4. **Add a diagnostic endpoint** — `GET /test-bedrock` or `GET /health` lets you probe AWS credential availability without a full stream.
+
+### Known App Runner Issues & Fixes
+
+| Symptom | Root Cause | Fix |
+|---------|------------|-----|
+| **Kiosk reboots immediately** after "Connecting to Nova Sonic" | Socket.IO `transports: ["websocket"]` — App Runner's ALB doesn't reliably forward WebSocket upgrades | Use `transports: ["polling", "websocket"]` — polling works through all HTTP load balancers |
+| **analyze_part always fails** | `novaAnalysisService.ts` called Bedrock from the browser with no credentials | Proxy Nova Lite calls through Express `POST /api/analyze-part` which has Instance Role |
+| **Docker push 403 Forbidden** | ECR login token expires separately from `aws login` | Call `aws ecr get-login-password | docker login` before every push (now automated in `deploy.py`) |
+| **No logs appear after crash** | Process SIGKILL'd before stdout flushes | Use `process.stderr.write()` (synchronous); stdout is async-buffered |
+| **CredentialsProviderError** | `.env.local` has hardcoded keys that override Instance Role | Comment out `VITE_AWS_ACCESS_KEY_ID` etc. in `.env.local` for production |
+| **Service reboots every ~8 min** | App Runner health check failures | Ensure `GET /health` returns 2xx; check port matches `SERVER_PORT` env var |
+
+### Deploying
+
+```bash
+python deploy.py   # Builds Docker image, ECR login, push, trigger App Runner update
+```
+
+`deploy.py` automatically handles ECR authentication before each push.
 
 ### Tool Calling Requirements (Critical)
 Nova Sonic tool calling has strict requirements:

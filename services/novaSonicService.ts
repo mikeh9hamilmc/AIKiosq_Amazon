@@ -25,7 +25,7 @@ export class NovaSonicService {
     private pendingToolName: string | null = null;
     private pendingToolContent: string | null = null;
 
-    constructor() {}
+    constructor() { }
 
     public async disconnect(): Promise<void> {
         // Stop audio capture
@@ -57,7 +57,7 @@ export class NovaSonicService {
         this.inputAudioContext = null;
         this.outputAudioContext = null;
         this.nextStartTime = 0;
-        this.sources.forEach((s) => { try { s.stop(); } catch {} });
+        this.sources.forEach((s) => { try { s.stop(); } catch { } });
         this.sources.clear();
         this.isPaused = false;
         this.callbacks = null;
@@ -85,8 +85,10 @@ export class NovaSonicService {
             callbacks.onStatusChange("Connecting to Nova Sonic server...");
 
             // Connect to Socket.IO server (same origin, proxied by Vite in dev)
+            // NOTE: Use polling first so it works through App Runner's ALB.
+            // Socket.IO will automatically upgrade to WebSocket after connecting.
             this.socket = io({
-                transports: ["websocket"],
+                transports: ["polling", "websocket"],
                 timeout: 10000,
             });
 
@@ -133,7 +135,7 @@ export class NovaSonicService {
                 this.socket!.once("audioReady", () => {
                     console.log("Server ready for audio input");
                     this.startAudioCapture(stream);
-                    callbacks.onStatusChange("Connected: Mac is listening...");
+                    callbacks.onStatusChange("Connected: Sparky is listening...");
                     resolve();
                 });
             });
@@ -147,7 +149,7 @@ export class NovaSonicService {
     private registerEventListeners(outputNode: GainNode, callbacks: LiveServiceCallbacks): void {
         if (!this.socket) return;
 
-        // Audio output from Nova Sonic (Mac speaking)
+        // Audio output from Nova Sonic (Sparky speaking)
         this.socket.on("audioOutput", (data: { content?: string }) => {
             if (data.content) {
                 const audioBytes = decode(data.content);
@@ -267,9 +269,9 @@ export class NovaSonicService {
                     break;
 
                 case "show_aisle":
-                    console.log(`🗺️  Showing aisle: ${toolInput.aisle_name || "Aisle 5"}`);
-                    callbacks.onShowAisleSign(toolInput.aisle_name || "Aisle 5");
-                    result = `Showing aisle sign for "${toolInput.aisle_name || "Aisle 5"}" on the kiosk screen. The customer can now see where to go. Say goodbye and wish them luck with the repair.`;
+                    console.log(`🗺️  Showing aisle: ${toolInput.aisle_name || "Aisle 17"}`);
+                    callbacks.onShowAisleSign(toolInput.aisle_name || "Aisle 17");
+                    result = `Showing aisle sign for "${toolInput.aisle_name || "Aisle 17"}" on the kiosk screen. The customer can now see where to go. Say goodbye and wish them luck.`;
                     console.log(`✅ Aisle sign displayed`);
                     break;
 
@@ -312,6 +314,11 @@ export class NovaSonicService {
 
     private async playAudio(data: Uint8Array, outputNode: AudioNode): Promise<void> {
         if (!this.outputAudioContext) return;
+
+        // Resume AudioContext if it's suspended (browser autoplay policy) 
+        if (this.outputAudioContext.state === "suspended") {
+            await this.outputAudioContext.resume();
+        }
 
         this.nextStartTime = Math.max(this.nextStartTime, this.outputAudioContext.currentTime);
         const audioBuffer = await decodeAudioData(data, this.outputAudioContext, 24000, 1);

@@ -1,54 +1,52 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import PlumbingThreadTeacher from '../PlumbingThreadTeacher';
+import ElectricalWiringTeacher from '../ElectricalWiringTeacher';
 import { LessonStage } from '../../types';
 
-describe('PlumbingThreadTeacher', () => {
+describe('ElectricalWiringTeacher', () => {
     it('renders idle state correctly', () => {
-        render(<PlumbingThreadTeacher lessonStage={LessonStage.IDLE} />);
+        render(<ElectricalWiringTeacher lessonStage={LessonStage.IDLE} />);
         expect(screen.getByText(/WAITING FOR NEW CUSTOMER/i)).toBeInTheDocument();
     });
 
     it('renders comparison diagram', () => {
-        render(<PlumbingThreadTeacher lessonStage={LessonStage.COMPARE_THREADS} />);
-        expect(screen.getByText(/IPS \(NPT\)/i)).toBeInTheDocument();
-        expect(screen.getByText(/COMPRESSION/i)).toBeInTheDocument();
+        render(<ElectricalWiringTeacher lessonStage={LessonStage.COMPARE_THREADS} />);
+        expect(screen.getByText(/SOLID WIRE/i)).toBeInTheDocument();
+        expect(screen.getByText(/STRANDED WIRE/i)).toBeInTheDocument();
     });
 
     it('renders highlight ferrule state', () => {
-        render(<PlumbingThreadTeacher lessonStage={LessonStage.HIGHLIGHT_FERRULE} />);
-        expect(screen.getByText(/SEAL POINT/i)).toBeInTheDocument();
+        render(<ElectricalWiringTeacher lessonStage={LessonStage.HIGHLIGHT_FERRULE} />);
+        expect(screen.getByText(/STRIP LENGTH/i)).toBeInTheDocument();
     });
 
     it('renders analyzing part spinner', () => {
-        render(<PlumbingThreadTeacher lessonStage={LessonStage.ANALYZING_PART} />);
+        render(<ElectricalWiringTeacher lessonStage={LessonStage.ANALYZING_PART} />);
         expect(screen.getByText(/AI ANALYSIS/i)).toBeInTheDocument();
-        expect(screen.getByText(/Mac is examining your part/i)).toBeInTheDocument();
+        expect(screen.getByText(/Sparky is examining your part/i)).toBeInTheDocument();
     });
 
     it('renders snapshot countdown', () => {
-        render(<PlumbingThreadTeacher lessonStage={LessonStage.COUNTDOWN_TO_SNAPSHOT} countdownValue={3} />);
+        render(<ElectricalWiringTeacher lessonStage={LessonStage.COUNTDOWN_TO_SNAPSHOT} countdownValue={3} />);
         expect(screen.getByText(/HOLD UP YOUR PART/i)).toBeInTheDocument();
         expect(screen.getByText('3')).toBeInTheDocument();
     });
 
     it('renders analysis results', () => {
         const mockAnalysis = {
-            partName: 'Test Valve',
+            partName: 'Burnt Outlet',
             instructions: 'Replace with care.',
-            warnings: ['Turn off water first'],
             snapshotBase64: 'fakebase64'
         };
         render(
-            <PlumbingThreadTeacher
+            <ElectricalWiringTeacher
                 lessonStage={LessonStage.SHOWING_ANALYSIS}
                 partAnalysis={mockAnalysis}
             />
         );
-        expect(screen.getByText(/PART IDENTIFIED: Test Valve/i)).toBeInTheDocument();
-        expect(screen.getByText(/Replace with care/i)).toBeInTheDocument();
-        expect(screen.getByText(/Turn off water first/i)).toBeInTheDocument();
+        expect(screen.getByText(/PART IDENTIFIED/i)).toBeInTheDocument();
+        expect(screen.getByText(/Burnt Outlet/i)).toBeInTheDocument();
     });
 
     it('renders inventory results', () => {
@@ -61,10 +59,10 @@ describe('PlumbingThreadTeacher', () => {
             price: 10.99,
             description: 'A test item',
             keywords: []
-        }]; // Added required missing props from interface if any
+        }];
 
         render(
-            <PlumbingThreadTeacher
+            <ElectricalWiringTeacher
                 lessonStage={LessonStage.SHOWING_INVENTORY}
                 inventoryItems={mockInventory}
             />
@@ -76,7 +74,7 @@ describe('PlumbingThreadTeacher', () => {
 
     it('renders aisle sign', () => {
         render(
-            <PlumbingThreadTeacher
+            <ElectricalWiringTeacher
                 lessonStage={LessonStage.SHOWING_AISLE}
                 aisleSignPath="/test-sign.jpg"
             />
