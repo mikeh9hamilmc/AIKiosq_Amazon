@@ -2,14 +2,41 @@ import subprocess
 import sys
 import os
 
-# Configuration
-SERVICE_NAME = "aikiosq-service"
-SERVICE_ARN = "arn:aws:apprunner:us-east-1:REDACTED_AWS_ACCOUNT_ID:service/aikiosq-service/9bd2ffa581d04e269eb24aeecec7b7bc"
-ECR_URL = "REDACTED_AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/aikiosq-app-runner:latest"
-ECR_REGISTRY = "REDACTED_AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com"
-IMAGE_NAME = "aikiosq-app-runner"
-AWS_REGION = "us-east-1"
-AWS_ACCOUNT_ID = "REDACTED_AWS_ACCOUNT_ID"
+def load_env():
+    """Simple parser to load .env.local without external dependencies."""
+    env_file = ".env.local"
+    if os.path.exists(env_file):
+        with open(env_file, "r") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if "=" in line:
+                    key, value = line.split("=", 1)
+                    os.environ[key.strip()] = value.strip()
+
+# Load environment variables before configuration constants
+load_env()
+
+# Configuration (from .env.local or defaults)
+AWS_REGION = os.getenv("VITE_AWS_REGION", "us-east-1")
+AWS_ACCOUNT_ID = os.getenv("AWS_ACCOUNT_ID")
+SERVICE_ARN = os.getenv("AWS_APP_RUNNER_SERVICE_ARN")
+IMAGE_NAME = os.getenv("ECR_REPOSITORY_NAME", "aikiosq-app-runner")
+
+# Derived Configuration
+ECR_REGISTRY = f"{AWS_ACCOUNT_ID}.dkr.ecr.{AWS_REGION}.amazonaws.com"
+ECR_URL = f"{ECR_REGISTRY}/{IMAGE_NAME}:latest"
+
+# Validation
+REQUIRED_VARS = ["AWS_ACCOUNT_ID", "AWS_APP_RUNNER_SERVICE_ARN"]
+missing = [var for var in REQUIRED_VARS if not os.getenv(var)]
+if missing:
+    print(f"❌ Error: Missing required environment variables in .env.local: {', '.join(missing)}")
+    print("Please copy .env.template to .env.local and fill in your AWS details.")
+    sys.exit(1)
+
+SERVICE_NAME = "aikiosq-service" # Display name
 
 def run_command(command, description):
     print(f"\n🚀 {description}...")
