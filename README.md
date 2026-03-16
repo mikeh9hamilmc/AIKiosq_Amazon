@@ -66,9 +66,9 @@ For technical details on AI behaviors and troubleshooting, see [AGENTS.md](AGENT
 ---
 
 ## 🤖 AI Agent Workflows
-This repository includes structured workflows in `.agents/workflows/` that can be executed by AI coding assistants (like Antigravity) to automate common tasks.
+This repository includes structured workflows in `.agent/workflows/` that can be executed by AI coding assistants (like Antigravity) to automate common tasks.
 
 - **[test.md](.agents/workflows/test.md)**: Automatically runs all unit and E2E tests to verify project stability.
 - **[deploy.md](.agents/workflows/deploy.md)**: Handles the full deployment process to AWS App Runner, including building the Docker image and pushing to ECR.
 
-To use these workflows with an agent, simply ask: *"Run the test workflow"* or *"Run the deploy workflow"*.
+To use these workflows with an agent, simply type /test or ask: *"Run the test workflow"* or *"Run the deploy workflow"*.
